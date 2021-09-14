@@ -1,0 +1,19 @@
+{
+  "name": "metaplexmetadata",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/web3.js": "^1.26.0",
+    "bn.js": "^5.2.0",
+    "borsh": "^0.6.0",
+    "bs58": "^4.0.1",
+    "node-fetch": "^3.0.0",
+    "typescript": "^4.4.3"
+  }
+}
