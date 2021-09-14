@@ -15,5 +15,10 @@
     "bs58": "^4.0.1",
     "node-fetch": "^3.0.0",
     "typescript": "^4.4.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.15.5",
+    "@babel/node": "^7.15.4",
+    "@babel/preset-env": "^7.15.6"
   }
 }
