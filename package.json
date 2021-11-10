@@ -13,7 +13,7 @@
     "bn.js": "^5.2.0",
     "borsh": "^0.6.0",
     "bs58": "^4.0.1",
-    "node-fetch": "^3.0.0",
+    "isomorphic-unfetch": "^3.1.0",
     "typescript": "^4.4.3"
   },
   "devDependencies": {
