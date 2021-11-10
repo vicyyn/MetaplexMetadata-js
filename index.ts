@@ -1,7 +1,7 @@
 import { decodeMetadata } from './utils'
 import { PublicKey } from '@solana/web3.js'
 // @ts-ignore
-import fetch from 'node-fetch'
+import fetch from 'isomorphic-unfetch'
 
 
 
