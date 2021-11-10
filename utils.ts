@@ -6,7 +6,7 @@ import {
 import { deserializeUnchecked, serialize, BinaryReader, BinaryWriter } from 'borsh';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js'
-const base58 = require('bs58');
+import base58 from 'bs58'
 
 export type StringPublicKey = string;
 
