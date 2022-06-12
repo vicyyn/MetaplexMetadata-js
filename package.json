@@ -17,5 +17,11 @@
     "isomorphic-fetch": "^3.0.0",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.15.5",
+    "@babel/node": "^7.15.4",
+    "@babel/preset-env": "^7.15.6",
+    "ts-node": "^10.4.0"
   }
 }
