@@ -4,5 +4,6 @@
     "module": "commonjs",
     "sourceMap": true,
     "moduleResolution": "node",
+    "esModuleInterop":true
   }
 }

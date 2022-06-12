@@ -1,9 +1,4 @@
-import {
-	SystemProgram,
-	SYSVAR_RENT_PUBKEY,
-	TransactionInstruction,
-} from '@solana/web3.js';
-import { deserializeUnchecked, serialize, BinaryReader, BinaryWriter } from 'borsh';
+import { deserializeUnchecked, BinaryReader, BinaryWriter } from 'borsh';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js'
 const base58 = require('bs58');
@@ -69,7 +64,6 @@ export const MAX_EDITION_LEN = 1 + 32 + 8 + 200;
 
 export const EDITION_MARKER_BIT_SIZE = 248;
 
-
 export enum MetadataKey {
 	Uninitialized = 0,
 	MetadataV1 = 4,
@@ -79,142 +73,21 @@ export enum MetadataKey {
 	EditionMarker = 7,
 }
 
-export enum MetadataCategory {
-	Audio = 'audio',
-	Video = 'video',
-	Image = 'image',
-	VR = 'vr',
-}
-
-export type MetadataFile = {
-	uri: string;
-	type: string;
-};
-
-export type FileOrString = MetadataFile | String;
-
-export type Attribute = {
-	trait_type?: string;
-	display_type?: string;
-	value: string | number;
-};
-
-export interface IMetadataExtension {
-	name: string;
-	symbol: string;
-
-	creators: Creator[] | null;
-	description: string;
-	// preview image absolute URI
-	image: string;
-	animation_url?: string;
-
-	attributes?: Attribute[];
-
-	// stores link to item on meta
-	external_url: string;
-
-	seller_fee_basis_points: number;
-
-	properties: {
-		files?: FileOrString[];
-		category: MetadataCategory;
-		maxSupply?: number;
-		creators?: {
-			address: string;
-			shares: number;
-		}[];
-	};
-}
-
-export class MasterEditionV1 {
-	key: MetadataKey;
-	supply: typeof BN;
-	maxSupply?: typeof BN;
-	/// Can be used to mint tokens that give one-time permission to mint a single limited edition.
-	printingMint: StringPublicKey;
-	/// If you don't know how many printing tokens you are going to need, but you do know
-	/// you are going to need some amount in the future, you can use a token from this mint.
-	/// Coming back to token metadata with one of these tokens allows you to mint (one time)
-	/// any number of printing tokens you want. This is used for instance by Auction Manager
-	/// with participation NFTs, where we dont know how many people will bid and need participation
-	/// printing tokens to redeem, so we give it ONE of these tokens to use after the auction is over,
-	/// because when the auction begins we just dont know how many printing tokens we will need,
-	/// but at the end we will. At the end it then burns this token with token-metadata to
-	/// get the printing tokens it needs to give to bidders. Each bidder then redeems a printing token
-	/// to get their limited editions.
-	oneTimePrintingAuthorizationMint: StringPublicKey;
-
-	constructor(args: {
-		key: MetadataKey;
-		supply: typeof BN;
-		maxSupply?: typeof BN;
-		printingMint: StringPublicKey;
-		oneTimePrintingAuthorizationMint: StringPublicKey;
-	}) {
-		this.key = MetadataKey.MasterEditionV1;
-		this.supply = args.supply;
-		this.maxSupply = args.maxSupply;
-		this.printingMint = args.printingMint;
-		this.oneTimePrintingAuthorizationMint =
-			args.oneTimePrintingAuthorizationMint;
-	}
-}
-
-export class MasterEditionV2 {
-	key: MetadataKey;
-	supply: typeof BN;
-	maxSupply?: typeof BN;
-
-	constructor(args: { key: MetadataKey; supply: typeof BN; maxSupply?: typeof BN }) {
-		this.key = MetadataKey.MasterEditionV2;
-		this.supply = args.supply;
-		this.maxSupply = args.maxSupply;
-	}
-}
-
-export class EditionMarker {
-	key: MetadataKey;
-	ledger: number[];
-
-	constructor(args: { key: MetadataKey; ledger: number[] }) {
-		this.key = MetadataKey.EditionMarker;
-		this.ledger = args.ledger;
-	}
-
-	editionTaken(edition: number) {
-		const editionOffset = edition % EDITION_MARKER_BIT_SIZE;
-		const indexOffset = Math.floor(editionOffset / 8);
-
-		if (indexOffset > 30) {
-			throw Error('bad index for edition');
-		}
-
-		const positionInBitsetFromRight = 7 - (editionOffset % 8);
-
-		const mask = Math.pow(2, positionInBitsetFromRight);
-
-		const appliedMask = this.ledger[indexOffset] & mask;
-
-		return appliedMask != 0;
-	}
-}
-
-export class Edition {
-	key: MetadataKey;
+export class Uses {
+	useMethod: number;
 	/// Points at MasterEdition struct
-	parent: StringPublicKey;
+	remaining: typeof BN;
 	/// Starting at 0 for master record, this is incremented for each edition minted.
-	edition: typeof BN;
+	total: typeof BN;
 
 	constructor(args: {
-		key: MetadataKey;
-		parent: StringPublicKey;
-		edition: typeof BN;
+		useMethod: number;
+		remaining: typeof BN;
+		total: typeof BN;
 	}) {
-		this.key = MetadataKey.EditionV1;
-		this.parent = args.parent;
-		this.edition = args.edition;
+		this.useMethod = args.useMethod
+		this.remaining = args.remaining;
+		this.total = args.total;
 	}
 }
 export class Creator {
@@ -254,6 +127,15 @@ export class Data {
 	}
 }
 
+export class Collection {
+	key: StringPublicKey;
+	verified: boolean;
+	constructor(args: { verified: boolean, key: StringPublicKey }) {
+		this.key = args.key;
+		this.verified = args.verified;
+	}
+}
+
 export class Metadata {
 	key: MetadataKey;
 	updateAuthority: StringPublicKey;
@@ -262,10 +144,10 @@ export class Metadata {
 	primarySaleHappened: boolean;
 	isMutable: boolean;
 	editionNonce: number | null;
-
-	// set lazy
-	masterEdition?: StringPublicKey;
-	edition?: StringPublicKey;
+	tokenStandard: number;
+	collection: Collection;
+	asd : string;
+	uses: Uses;
 
 	constructor(args: {
 		updateAuthority: StringPublicKey;
@@ -274,6 +156,9 @@ export class Metadata {
 		primarySaleHappened: boolean;
 		isMutable: boolean;
 		editionNonce: number | null;
+		uses: Uses;
+		tokenStandard: number;
+		collection: Collection;
 	}) {
 		this.key = MetadataKey.MetadataV1;
 		this.updateAuthority = args.updateAuthority;
@@ -282,130 +167,21 @@ export class Metadata {
 		this.primarySaleHappened = args.primarySaleHappened;
 		this.isMutable = args.isMutable;
 		this.editionNonce = args.editionNonce;
-	}
-}
-
-class CreateMetadataArgs {
-	instruction: number = 0;
-	data: Data;
-	isMutable: boolean;
-
-	constructor(args: { data: Data; isMutable: boolean }) {
-		this.data = args.data;
-		this.isMutable = args.isMutable;
-	}
-}
-class UpdateMetadataArgs {
-	instruction: number = 1;
-	data: Data | null;
-	// Not used by this app, just required for instruction
-	updateAuthority: StringPublicKey | null;
-	primarySaleHappened: boolean | null;
-	constructor(args: {
-		data?: Data;
-		updateAuthority?: string;
-		primarySaleHappened: boolean | null;
-	}) {
-		this.data = args.data ? args.data : null;
-		this.updateAuthority = args.updateAuthority ? args.updateAuthority : null;
-		this.primarySaleHappened = args.primarySaleHappened;
-	}
-}
-
-class CreateMasterEditionArgs {
-	instruction: number = 10;
-	maxSupply: typeof BN | null;
-	constructor(args: { maxSupply: typeof BN | null }) {
-		this.maxSupply = args.maxSupply;
-	}
-}
-
-class MintPrintingTokensArgs {
-	instruction: number = 9;
-	supply: typeof BN;
-
-	constructor(args: { supply: typeof BN }) {
-		this.supply = args.supply;
+		this.tokenStandard = args.tokenStandard;
+		this.collection = args.collection;
+		this.uses = args.uses;
 	}
 }
 
 export const METADATA_SCHEMA = new Map<any, any>([
 	[
-		CreateMetadataArgs,
+		Uses,
 		{
 			kind: 'struct',
 			fields: [
-				['instruction', 'u8'],
-				['data', Data],
-				['isMutable', 'u8'], // bool
-			],
-		},
-	],
-	[
-		UpdateMetadataArgs,
-		{
-			kind: 'struct',
-			fields: [
-				['instruction', 'u8'],
-				['data', { kind: 'option', type: Data }],
-				['updateAuthority', { kind: 'option', type: 'pubkeyAsString' }],
-				['primarySaleHappened', { kind: 'option', type: 'u8' }],
-			],
-		},
-	],
-
-	[
-		CreateMasterEditionArgs,
-		{
-			kind: 'struct',
-			fields: [
-				['instruction', 'u8'],
-				['maxSupply', { kind: 'option', type: 'u64' }],
-			],
-		},
-	],
-	[
-		MintPrintingTokensArgs,
-		{
-			kind: 'struct',
-			fields: [
-				['instruction', 'u8'],
-				['supply', 'u64'],
-			],
-		},
-	],
-	[
-		MasterEditionV1,
-		{
-			kind: 'struct',
-			fields: [
-				['key', 'u8'],
-				['supply', 'u64'],
-				['maxSupply', { kind: 'option', type: 'u64' }],
-				['printingMint', 'pubkeyAsString'],
-				['oneTimePrintingAuthorizationMint', 'pubkeyAsString'],
-			],
-		},
-	],
-	[
-		MasterEditionV2,
-		{
-			kind: 'struct',
-			fields: [
-				['key', 'u8'],
-				['supply', 'u64'],
-				['maxSupply', { kind: 'option', type: 'u64' }],
-			],
-		},
-	],
-	[
-		Edition,
-		{
-			kind: 'struct',
-			fields: [
-				['key', 'u8'],
-				['parent', 'pubkeyAsString'],
-				['edition', 'u64'],
+				['useMethod', 'u8'],
+				['remaining', 'u64'],
+				['total','u64'],
 			],
 		},
 	],
@@ -434,6 +210,17 @@ export const METADATA_SCHEMA = new Map<any, any>([
 		},
 	],
 	[
+		Collection,
+		{
+			kind: 'struct',
+			fields: [
+				['verified', 'u8'],
+				['key', 'pubkeyAsString'],
+			],
+		},
+	],
+
+	[
 		Metadata,
 		{
 			kind: 'struct',
@@ -444,16 +231,10 @@ export const METADATA_SCHEMA = new Map<any, any>([
 				['data', Data],
 				['primarySaleHappened', 'u8'], // bool
 				['isMutable', 'u8'], // bool
-			],
-		},
-	],
-	[
-		EditionMarker,
-		{
-			kind: 'struct',
-			fields: [
-				['key', 'u8'],
-				['ledger', [31]],
+				['editionNonce', { kind: 'option', type: 'u8' }],
+				['tokenStandard', { kind: 'option', type: 'u8' }],
+				['collection', { kind: 'option', type: Collection }],
+				['uses', Uses],
 			],
 		},
 	],
@@ -463,6 +244,7 @@ export const METADATA_SCHEMA = new Map<any, any>([
 const METADATA_REPLACE = new RegExp('\u0000', 'g');
 
 export const decodeMetadata = (buffer: Buffer): Metadata => {
+	console.log(Metadata.length)
 	const metadata = deserializeUnchecked(
 		METADATA_SCHEMA,
 		Metadata,
